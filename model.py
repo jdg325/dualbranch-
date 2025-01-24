@@ -38,7 +38,7 @@ class SSA(nn.Module):
         :param d_v: Dimensionality of values
         :param h: Number of heads
         '''
-        super(MobileViTv2Attention, self).__init__()
+        super(SSA, self).__init__()
         self.fc_i = nn.Linear(d_model, 1)
         self.fc_k = nn.Linear(d_model, d_model)
         self.fc_v = nn.Linear(d_model, d_model)
