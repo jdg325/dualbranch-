@@ -112,7 +112,6 @@ class Alpffn(nn.Module):
 
     def forward(self, x):
         b, n, k = x.size()
-        # cls_token, tokens = torch.split(x, [1, n - 1], dim=1)
         x = x.reshape(b, int(math.sqrt(n )), int(math.sqrt(n )), k).permute(0, 3, 1, 2)
         if self.with_bn:
             x = self.conv1(x)
@@ -131,7 +130,6 @@ class Alpffn(nn.Module):
             x = self.conv3(x)
 
         x = x.flatten(2).permute(0, 2, 1)
-        # out = torch.cat((cls_token, tokens), dim=1)
         return (x + x.mean(dim=1, keepdim=True)) * 0.5
 
 
@@ -204,8 +202,7 @@ class SelfAttn(nn.Module):
         self.cnn_mlp = nn.Sequential(*mlp_layer)
         
         self.weight_a = nn.Parameter(torch.Tensor([0.5]))
-        # self.fusion_conv = nn.Conv2d(2 * dim, dim, kernel_size=1, stride=1, bias=False)
-
+       
 
        
 
@@ -215,7 +212,7 @@ class SelfAttn(nn.Module):
         x_cnn = x.clone()
         x_transformer = x
 
-        #transformer分支
+        #transformer
         x_transformer = x_transformer+ self.pos_embed(x_transformer)
         B, N, H, W = x_transformer.shape
         x_transformer = x_transformer.flatten(2).transpose(1, 2)
@@ -223,17 +220,14 @@ class SelfAttn(nn.Module):
         x_transformer = x_transformer + self.drop_path(self.mlp(self.norm2(x_transformer)))
         x_transformer = x_transformer.transpose(1, 2).reshape(B, N, H, W)
 
-        # #cnn分支
+        # #cnn
         x_cnn = self.spatial_mixing(x_cnn)
         x_cnn = self.cnn_mlp(x_cnn)
 
-        # x_fused = torch.cat([x_transformer, x_cnn], dim=1)
-
-#         # 使用 1x1 卷积映射回原始维度
-        # x_fused = self.fusion_conv(x_fused)
+        
         
         x_fused = self.weight_a * x_transformer + (1 - self.weight_a) * x_cnn
-        # x_fused =  x_transformer +  x_cnn
+        
 
         return   x_fused
 
@@ -401,30 +395,3 @@ class Model(nn.Module):
         return x
 
 
-@register_model
-def edgevit_xxs(pretrained=True, **kwargs):
-    model = EdgeVit(
-        depth=[1, 1, 3, 2],
-        embed_dim=[36, 72, 144, 288], head_dim=36, mlp_ratio=[4]*4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), sr_ratios=[4,2,2,1], **kwargs)
-    model.default_cfg = _cfg()
-    return model
-
-@register_model
-def edgevit_xs(pretrained=True, **kwargs):
-    model = EdgeVit(
-        depth=[1, 1, 3, 1],
-        embed_dim=[48, 96, 240, 384], head_dim=48, mlp_ratio=[4]*4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), sr_ratios=[4,2,2,1], **kwargs)
-    model.default_cfg = _cfg()
-    return model
-
-
-@register_model
-def edgevit_s(pretrained=True, **kwargs):
-    model = EdgeVit(
-        depth=[1, 2, 5, 3],
-        embed_dim=[48, 96, 240, 384], head_dim=48, mlp_ratio=[4]*4, qkv_bias=True,
-        norm_layer=partial(nn.LayerNorm, eps=1e-6), sr_ratios=[4,2,2,1], **kwargs)
-    model.default_cfg = _cfg()
-    return model
